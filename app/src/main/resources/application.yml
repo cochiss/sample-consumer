@@ -1,0 +1,55 @@
+server:
+  port: 8181
+
+meg:
+  pull:
+    client:
+      base-url: http://localhost:8080
+
+sample:
+  source-app: sample-consumer
+  routing:
+    amount-max-standard-to-pay: 10000
+    amount-max-large-to-pay: 100000
+  topics:
+    in:
+      reintegros:
+        id: solicitudes-reintegros
+        version: 1
+        subscription:
+          name-sub: pago-reintegros
+          # Reemplazar con el token devuelto al crear la suscripcion (POST /subscriptions)
+          token: REPLACE_WITH_YOUR_SUB_TOKEN
+          rows: 10
+          cron: "*/10 * * * * *"
+      reintegros-alto-monto:
+        id: solicitudes-reintegros-alto-monto
+        version: 1
+        subscription:
+          name-sub: pago-reintegros-alto-monto
+          # Reemplazar con el token devuelto al crear la suscripcion (POST /subscriptions)
+          token: REPLACE_WITH_YOUR_SUB_TOKEN
+          rows: 10
+          cron: "*/12 * * * * *"
+      pagos-reintegros:
+        id: pagos-reintegros
+        version: 1
+        subscription:
+          name-sub: notificacion-pago-reintegros
+          # Reemplazar con el token devuelto al crear la suscripcion (POST /subscriptions)
+          token: REPLACE_WITH_YOUR_SUB_TOKEN
+          rows: 10
+          cron: "*/15 * * * * *"
+    out:
+      pagos-reintegros:
+        id: pagos-reintegros
+        version: 1
+        # Reemplazar con el publishToken devuelto al crear el topic (POST /topics)
+        token: REPLACE_WITH_YOUR_PUBLISH_TOKEN
+        event-type: pago.reintegro.confirmado
+      reintegros-alto-monto:
+        id: solicitudes-reintegros-alto-monto
+        version: 1
+        # Reemplazar con el publishToken devuelto al crear el topic (POST /topics)
+        token: REPLACE_WITH_YOUR_PUBLISH_TOKEN
+        event-type: solicitud.reintegro.alto-monto.detectada

@@ -1,0 +1,36 @@
+# Build / Maven
+/target/
+/build/
+/out/
+/.gradle/
+**/target/
+**/build/
+*.jar
+*.war
+
+# IDE
+/.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+/.classpath
+/.project
+/.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+/logs/
+
+# Maven local config
+.mvn/wrapper/maven-wrapper.jar
+
+# Local secrets/overrides (no commitear)
+**/application-local.yml
+**/application-secrets.yml
+.env
+.env.local
