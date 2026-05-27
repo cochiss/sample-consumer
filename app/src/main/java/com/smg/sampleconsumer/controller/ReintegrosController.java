@@ -16,7 +16,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Webhook PUSH: misma idea de validación que {@link com.smg.sampleconsumer.consumers.PullReintegrosStandardConsumer}
- * (header/payload/monto/cbu). HTTP 400 = el consumidor rechaza el mensaje como inválido (en el gateway,
+ * (header/payload/monto/cbu/du). HTTP 400 = el consumidor rechaza el mensaje como inválido (en el gateway,
  * 4xx → DLQ sin reintentos). HTTP 5xx = fallo transitorio (el gateway reintenta hasta el máximo).
  */
 @RestController
@@ -70,9 +70,10 @@ public class ReintegrosController {
             throw new IllegalArgumentException("Invalid body: missing header/payload/messageId");
         }
         Object cbuValue = payload.get("cbu");
+        Object duValue = payload.get("du");
         Object montoObj = payload.get("monto");
-        if (cbuValue == null || montoObj == null) {
-            throw new IllegalArgumentException("Invalid body: missing monto/cbu");
+        if (cbuValue == null || duValue == null || montoObj == null) {
+            throw new IllegalArgumentException("Invalid body: missing monto/cbu/du");
         }
         if (!(montoObj instanceof Number)) {
             throw new IllegalArgumentException("Invalid body: monto must be numeric");
@@ -81,6 +82,10 @@ public class ReintegrosController {
         String cbu = String.valueOf(cbuValue);
         if (cbu.isBlank()) {
             throw new IllegalArgumentException("Invalid body: blank cbu");
+        }
+        String du = String.valueOf(duValue);
+        if (du.isBlank()) {
+            throw new IllegalArgumentException("Invalid body: blank du");
         }
         double monto = montoValue.doubleValue();
         if (monto <= 0 || monto == -1d) {

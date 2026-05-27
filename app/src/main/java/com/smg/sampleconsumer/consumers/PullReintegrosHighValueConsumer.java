@@ -10,6 +10,7 @@ import com.smg.sampleconsumer.config.SampleRoutingProperties;
 import com.smg.sampleconsumer.config.SampleTopicsProperties;
 import com.smg.sampleconsumer.mapper.ReintegroMessageMapper;
 import com.smg.sampleconsumer.model.ReintegroMessage;
+import com.smg.sampleconsumer.publishers.PagosReintegrosPublisher;
 import com.smg.sampleconsumer.services.ReintegrosPagoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +26,7 @@ public class PullReintegrosHighValueConsumer extends MegBasicPullConsumer<Reinte
     private final MegSubscriptionConfig subscriptionConfig;
     private final ReintegroMessageMapper reintegroMessageMapper;
     private final ReintegrosPagoService reintegrosPagoService;
+    private final PagosReintegrosPublisher pagosReintegrosPublisher;
     private final double amountMaxLargeToPay;
 
     public PullReintegrosHighValueConsumer(
@@ -32,12 +34,14 @@ public class PullReintegrosHighValueConsumer extends MegBasicPullConsumer<Reinte
             SampleTopicsProperties sampleTopicsProperties,
             SampleRoutingProperties routingProperties,
             ReintegroMessageMapper reintegroMessageMapper,
-            ReintegrosPagoService reintegrosPagoService
+            ReintegrosPagoService reintegrosPagoService,
+            PagosReintegrosPublisher pagosReintegrosPublisher
     ) {
         super(megPullClient);
         this.subscriptionConfig = MegSubscriptionConfigs.from(sampleTopicsProperties.getIn().getReintegrosAltoMonto());
         this.reintegroMessageMapper = reintegroMessageMapper;
         this.reintegrosPagoService = reintegrosPagoService;
+        this.pagosReintegrosPublisher = pagosReintegrosPublisher;
         this.amountMaxLargeToPay = routingProperties.getAmountMaxLargeToPay();
     }
 
@@ -47,6 +51,15 @@ public class PullReintegrosHighValueConsumer extends MegBasicPullConsumer<Reinte
             ReintegroMessage reintegro = message;
             log.info("Processed reintegro large. monto={} cbu={}", reintegro.getMonto(), reintegro.getCbu());
             reintegrosPagoService.pagar(reintegro);
+            pagosReintegrosPublisher.publish(
+                    "pago-alto-monto-" + reintegro.getMessageId(),
+                    reintegro.getCorrelationId(),
+                    "finanzas-api",
+                    "pago.reintegro.confirmado",
+                    "sample-consumer",
+                    reintegro.getPayload()
+            );
+            log.info("Published pago event to pagos-reintegros (alto monto). monto={} cbu={}", reintegro.getMonto(), reintegro.getCbu());
         });
     }
 
@@ -60,6 +73,15 @@ public class PullReintegrosHighValueConsumer extends MegBasicPullConsumer<Reinte
     protected MegValidationResult validateMappedMessage(ReintegroMessage reintegro) {
         if (reintegro.getMessageId() == null || reintegro.getMessageId().isBlank()) {
             return MegValidationResult.invalid("missing messageId");
+        }
+        if (reintegro.getCbu() == null || reintegro.getCbu().isBlank()) {
+            return MegValidationResult.invalid("blank cbu");
+        }
+        if (reintegro.getDu() == null || reintegro.getDu().isBlank()) {
+            return MegValidationResult.invalid("blank du");
+        }
+        if (reintegro.getUser() == null || reintegro.getUser().isBlank()) {
+            return MegValidationResult.invalid("blank user");
         }
         if (reintegro.getMonto() > amountMaxLargeToPay) {
             return MegValidationResult.invalid("monto no aceptable");

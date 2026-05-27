@@ -37,13 +37,12 @@ public class PullPagosReintegrosNotificationConsumer extends MegBasicPullConsume
     public void onPullMessage(List<Map<String, Object>> messages) {
         processMessagesForSubscription((List<Map<String, Object>>) (List<?>) messages, subscriptionConfig, message -> {
             ReintegroMessage pago = message;
-            String du = String.valueOf(pago.getPayload().getOrDefault("du", "sin-du"));
             log.info(
                     "Simulacion envio mail cliente por reintegro pagado. messageId={} monto={} cbu={} du={} correlationId={}",
                     pago.getMessageId(),
                     pago.getMonto(),
                     pago.getCbu(),
-                    du,
+                    pago.getDu(),
                     pago.getCorrelationId()
             );
         });
@@ -61,6 +60,9 @@ public class PullPagosReintegrosNotificationConsumer extends MegBasicPullConsume
         }
         if (pago.getCbu() == null || pago.getCbu().isBlank()) {
             return MegValidationResult.invalid("blank cbu");
+        }
+        if (pago.getDu() == null || pago.getDu().isBlank()) {
+            return MegValidationResult.invalid("blank du");
         }
         if (pago.getMonto() <= 0) {
             return MegValidationResult.invalid("invalid monto");

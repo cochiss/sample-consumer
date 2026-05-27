@@ -21,6 +21,12 @@ public class ReintegrosPagoService {
         if (reintegro.getMonto() > amountMaxLargeToPay && ThreadLocalRandom.current().nextInt(100) < 35) {
             throw new IllegalStateException("random failure in pagar for retry demo");
         }
-        log.info("Pago ejecutado. messageId={} monto={}", reintegro.getMessageId(), reintegro.getMonto());
+        log.info(
+                "Pago ejecutado. messageId={} monto={} cbu={} du={}",
+                reintegro.getMessageId(),
+                reintegro.getMonto(),
+                reintegro.getCbu(),
+                reintegro.getDu()
+        );
     }
 }

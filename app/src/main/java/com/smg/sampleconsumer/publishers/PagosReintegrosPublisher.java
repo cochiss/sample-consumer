@@ -18,16 +18,20 @@ public class PagosReintegrosPublisher extends MegBasicPublisher {
         super(megPullClient, environment);
     }
 
-    public Map<String, Object> publishMessage(
-            String sourceMessageId,
+    public Map<String, Object> publish(
+            String idempotencyKey,
             String correlationId,
             String user,
+            String eventType,
+            String sourceApp,
             Map<String, Object> payload
     ) {
-        return super.publishMessageFromConfig(
-                sourceMessageId,
+        return super.publishUsingTopicConfig(
+                idempotencyKey,
                 correlationId,
                 user,
+                eventType,
+                sourceApp,
                 payload,
                 1
         );
