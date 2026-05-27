@@ -4,6 +4,7 @@ Módulo **Java + Spring Boot** del sample: **PUSH** (webhook) y **PULL** con [`p
 
 - [`SPEC.md`](SPEC.md)
 - Endpoints y reglas del servidor: [`../../messaging-event-gateway/SPEC.md`](../../messaging-event-gateway/SPEC.md)
+- Guía ARQEVENT (integración MEG): [docs/arqevent/README.md](https://github.com/cochiss/messaging-event-gateway/blob/main/docs/arqevent/README.md)
 
 ## Ejecutar
 

@@ -4,6 +4,8 @@
 
 Aplicación de prueba para validar flujos **PUSH** y **PULL** contra el gateway ([contratos del servidor](../../messaging-event-gateway/SPEC.md)).
 
+Guía ARQEVENT: [messaging-event-gateway/docs/arqevent/README.md](https://github.com/cochiss/messaging-event-gateway/blob/main/docs/arqevent/README.md).
+
 ## Patrón obligatorio: Reactor + FP
 
 Norma del proyecto **`sample-consumer`**: ver [**Sample Consumer — SPEC**](../SPEC.md) (sección **Implementación: Reactor y programación funcional**). Resumen: todo código nuevo en **`app`** usa **Reactor** (`Mono`/`Flux`) y estilo **funcional** (cadenas de operadores, errores explícitos en el flujo, sin mezclar bloques imperativos extensos en la lógica de negocio de demo).

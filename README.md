@@ -4,6 +4,8 @@ App **PoC** para probar integración **PUSH** (webhook HTTP) y **PULL** (consumo
 
 Documentación del proyecto: **[`SPEC.md`](SPEC.md)**. Allí está fijado el patrón de **Reactor + programación funcional** para todo el módulo `app` (cambios futuros deben respetarlo).
 
+Guía de integración MEG (ARQEVENT, patrones PUSH/PULL, traza, operación): [messaging-event-gateway/docs/arqevent/README.md](https://github.com/cochiss/messaging-event-gateway/blob/main/docs/arqevent/README.md). Este repo es la PoC de referencia citada en esa guía.
+
 ## Requisitos
 
 - JDK 17
