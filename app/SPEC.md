@@ -16,6 +16,7 @@ Norma del proyecto **`sample-consumer`**: ver [**Sample Consumer — SPEC**](../
 
 - PULL: `Pull<Domain><Segment>Consumer` (ej. `PullReintegrosStandardConsumer`, `PullReintegrosHighValueConsumer`).
 - PUSH webhook: `<Domain>Controller` para endpoints webhook de dominio (ej. `ReintegrosController`).
+- Servicios de dominio: `<Domain><Accion>Service` (ej. `ReintegrosPagoService` con método `pagar(ReintegroMessage)`), usados desde consumers PULL y, si aplica, desde el webhook PUSH.
 - Evitar `*Demo` en nombres de clases cuando la PoC ya se usa como base funcional.
 
 ## Formato obligatorio de consumers PULL
@@ -27,14 +28,16 @@ Norma del proyecto **`sample-consumer`**: ver [**Sample Consumer — SPEC**](../
 - Base genérica: `MegBasicPullConsumer<T : MegMessage>`.
 - Transformación de mensaje: adapter explícito con `mapMessage(...)` (normalmente delega en `MegMessageMapper<T>`) hacia modelo de dominio (`ReintegroMessage`).
 - Validación de rechazo de negocio: `validateMappedMessage(T)` devolviendo `MegValidationResult` (no se valida en el mapper).
+- **Efectos de negocio** (pago, persistencia, integraciones): **no** inline en el consumer. Tras `validateMappedMessage` OK, delegar en un **servicio de dominio** inyectado (`@Service`), por ejemplo `reintegrosPagoService.pagar(reintegro);` donde `reintegro` es el modelo tipado (`ReintegroMessage`). El consumer solo orquesta: map → validate → **servicio** → (si aplica) publicación vía `MegBasicPublisher` u otro bean.
 - Tras validación OK, el **basic** envía **PROCESSED** si el cuerpo del handler termina sin excepción; **REJECT** ante falla de mapping o `validateMappedMessage` inválido. Excepción en el handler → sin ACK, mensaje pendiente; el resto del batch sigue.
-- Organización de packages del módulo: `com.smg.sampleconsumer.consumers` para PULL y `com.smg.sampleconsumer.publishers` para publishers.
+- Organización de packages del módulo: `com.smg.sampleconsumer.consumers` para PULL, `com.smg.sampleconsumer.services` para lógica de dominio reutilizable y `com.smg.sampleconsumer.publishers` para publishers.
 
 ## Formato obligatorio de publishers
 
 - Clase simple: extiende `MegBasicPublisher` y declara `@MegPublishConfig(configPrefix = "...")`.
 - Constructor mínimo: `MegPullClient` + `Environment`.
-- Método público estándar para publicación: `publishMessage(String sourceMessageId, String correlationId, String user, Map<String, Object> payload)`.
+- Método público estándar para publicación: `publish(String idempotencyKey, String correlationId, String user, String eventType, String sourceApp, Map<String, Object> payload)` delegando en `publishUsingTopicConfig`.
+- Los metadatos de publish (`eventType`, `sourceApp`, `user`, `idempotencyKey`) se definen **explícitamente en el consumer** en cada llamada; el YAML de salida solo aporta `id`, `version` y `token`.
 - No usar `@MegPullSubscription` en publishers (esa anotación es exclusiva de consumers PULL).
 
 ## PULL
@@ -43,8 +46,8 @@ Norma del proyecto **`sample-consumer`**: ver [**Sample Consumer — SPEC**](../
 - Ejecuta pull por cron y entrega un batch completo (`List<Map<String,Object>>`) al handler.
 - ACK **PROCESSED** / validación→**REJECT** los centraliza `MegBasicPullConsumer` al procesar cada ítem del batch (ver SPEC de `pull-consumer-lib`).
 - Si `monto > 10000` (configurable), publica el mismo payload al topic de salida `solicitudes-reintegros-alto-monto` usando la librería; el PROCESSED del original lo hace `MegBasicPullConsumer` al finalizar sin excepción.
-- Si `monto <= 10000` (configurable), ejecuta `pagar(...)` y publica evento de pago en topic de salida `pagos-reintegros` usando la librería.
-- El mismo sample incluye un segundo consumidor PULL para `solicitudes-reintegros-alto-monto`.
+- Si `monto <= 10000` (configurable), el consumer delega en `ReintegrosPagoService#pagar` (`reintegrosPagoService.pagar(reintegro)`) y luego publica el evento de pago en el topic de salida `pagos-reintegros` usando la librería.
+- El mismo sample incluye un segundo consumidor PULL para `solicitudes-reintegros-alto-monto` (`PullReintegrosHighValueConsumer`): tras validar monto dentro de techo, ejecuta `reintegrosPagoService.pagar(reintegro)` y publica en `pagos-reintegros` con `PagosReintegrosPublisher` (mismo `event-type` que el flujo estándar), para que el consumidor de notificaciones sobre `pagos-reintegros` reciba también los pagos procesados por la cola de alto monto.
 - El mismo sample incluye un consumidor PULL para `pagos-reintegros` que simula envio de mail de notificacion por reintegro pagado (solo log).
 - Reglas de negocio del demo:
   - `mapMessage` falla o `validateMappedMessage` inválido => REJECT automático por ítem
@@ -62,6 +65,7 @@ Cada **caso de uso nuevo** en este módulo debe incluir **al menos un test unita
   - `sample.topics.out.*`: topicos de salida (publicacion).
   - incluye `sample.topics.out.pagos-reintegros` para evento de pago confirmado.
   - en `sample.topics.out.*.token` se configura el token de publicacion del topic de salida (`X-Topic-Token`).
+  - `event-type` y `source-app` **no** van en YAML de salida: se pasan en codigo al invocar `publish(...)`.
 - `SAMPLE_SUB_TOKEN`: token PULL para `sample.topics.in.reintegros.subscription.token`.
 - `SAMPLE_SUB_TOKEN_ALTO_MONTO`: token PULL para `sample.topics.in.reintegros-alto-monto.subscription.token`.
 - `SAMPLE_SUB_TOKEN_PAGOS`: token PULL para `sample.topics.in.pagos-reintegros.subscription.token`.

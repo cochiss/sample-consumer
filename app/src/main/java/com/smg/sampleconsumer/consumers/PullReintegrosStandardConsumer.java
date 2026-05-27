@@ -56,19 +56,23 @@ public class PullReintegrosStandardConsumer extends MegBasicPullConsumer<Reinteg
             log.info("Processed reintegro. monto={} cbu={}", reintegro.getMonto(), reintegro.getCbu());
             if (reintegro.getMonto() > amountMaxStandardToPay) {
                 log.info("Redirect to reintegro large. monto={} cbu={}", reintegro.getMonto(), reintegro.getCbu());
-                reintegrosLargePublisher.publishMessage(
-                        reintegro.getMessageId(),
+                reintegrosLargePublisher.publish(
+                        "alto-monto-route-" + reintegro.getMessageId(),
                         reintegro.getCorrelationId(),
-                        reintegro.getUser(),
-                        (Map<String, Object>) (Map<?, ?>) reintegro.getPayload()
+                        "finanzas-api",
+                        "solicitud.reintegro.alto-monto.detectada",
+                        "sample-consumer",
+                        reintegro.getPayload()
                 );
             } else {
                 reintegrosPagoService.pagar(reintegro);
-                pagosReintegrosPublisher.publishMessage(
-                        reintegro.getMessageId(),
+                pagosReintegrosPublisher.publish(
+                        "pago-confirmado-" + reintegro.getMessageId(),
                         reintegro.getCorrelationId(),
-                        reintegro.getUser(),
-                        (Map<String, Object>) (Map<?, ?>) reintegro.getPayload()
+                        "finanzas-api",
+                        "pago.reintegro.confirmado",
+                        "sample-consumer",
+                        reintegro.getPayload()
                 );
                 log.info("Published pago event to pagos-reintegros. monto={} cbu={}", reintegro.getMonto(), reintegro.getCbu());
             }
@@ -88,6 +92,12 @@ public class PullReintegrosStandardConsumer extends MegBasicPullConsumer<Reinteg
         }
         if (reintegro.getCbu() == null || reintegro.getCbu().isBlank()) {
             return MegValidationResult.invalid("blank cbu");
+        }
+        if (reintegro.getDu() == null || reintegro.getDu().isBlank()) {
+            return MegValidationResult.invalid("blank du");
+        }
+        if (reintegro.getUser() == null || reintegro.getUser().isBlank()) {
+            return MegValidationResult.invalid("blank user");
         }
         if (reintegro.getMonto() <= 0 || reintegro.getMonto() == -1d) {
             return MegValidationResult.invalid("invalid monto");

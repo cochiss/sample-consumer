@@ -46,6 +46,7 @@ Para mantener consistencia en el módulo `app`, se define el siguiente patrón:
 - **Controladores PUSH (webhook)**: `<Domain>Controller`
   - Ejemplo: `ReintegrosController`.
 - **Handlers/routers de ruteo** (si se separan de consumers): `<Domain>RoutingService` o `<Domain>RerouteService`.
+- **Servicios de dominio** (efectos de negocio tras validar el mensaje): `<Domain><Accion>Service` (ej. `ReintegrosPagoService` con `pagar(ReintegroMessage)`), invocados desde el consumer con `reintegrosPagoService.pagar(reintegro)`; ver [app/SPEC.md](app/SPEC.md) sección **Formato obligatorio de consumers PULL**.
 
 Regla práctica:
 - incluir el **dominio** (`Reintegros`) y la **intención** (`Consumer`, `Controller`, `Service`).

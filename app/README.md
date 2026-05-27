@@ -27,7 +27,7 @@ Nomenclatura recomendada para nuevos nombres:
 
 ## Demo PUSH
 
-El webhook valida el mismo **shape** que el PULL (`header`/`payload`, `monto`, `cbu`, etc.): si no cumple, responde **400** (en el gateway, **4xx → DLQ sin reintentos**). Un fallo **aleatorio** simulado devuelve **500** (el gateway **reintenta** y solo entonces puede ir a DLQ). Ver [SPEC del gateway §3.4](../../messaging-event-gateway/SPEC.md#34-envio-push-webhook).
+El webhook valida el mismo **shape** que el PULL (`header`/`payload`, `monto`, `cbu`, `du`, etc.): si no cumple, responde **400** (en el gateway, **4xx → DLQ sin reintentos**). Un fallo **aleatorio** simulado devuelve **500** (el gateway **reintenta** y solo entonces puede ir a DLQ). Ver [SPEC del gateway §3.4](../../messaging-event-gateway/SPEC.md#34-envio-push-webhook).
 
 1. Crear suscripción `PUSH` al webhook del sample (`/ws.reintegros/pagos` en **8181**).
 
@@ -148,12 +148,29 @@ Forma recomendada de uso de la librería (Publisher):
 
 ```java
 @Component
-@MegPublishConfig(configPrefix = "sample.topics.out.reintegros-alto-monto")
-public class ReintegrosLargePublisher extends MegBasicPublisher {
-    public Map<String, Object> publishMessage(String sourceMessageId, String correlationId, String user, Map<String, Object> payload) {
-        return super.publishMessageFromConfig(sourceMessageId, correlationId, user, payload, 1);
+@MegPublishConfig(configPrefix = "sample.topics.out.pagos-reintegros")
+public class PagosReintegrosPublisher extends MegBasicPublisher {
+    public Map<String, Object> publish(
+            String idempotencyKey,
+            String correlationId,
+            String user,
+            String eventType,
+            String sourceApp,
+            Map<String, Object> payload
+    ) {
+        return super.publishUsingTopicConfig(idempotencyKey, correlationId, user, eventType, sourceApp, payload, 1);
     }
 }
+
+// En el consumer (ejemplo):
+pagosReintegrosPublisher.publish(
+    "pago-confirmado-" + reintegro.getMessageId(),
+    reintegro.getCorrelationId(),
+    "finanzas-api",
+    "pago.reintegro.confirmado",
+    "sample-consumer",
+    reintegro.getPayload()
+);
 ```
 
 Comportamiento:
@@ -164,7 +181,7 @@ Comportamiento:
 - Si `monto > sample.routing.amount-max-standard-to-pay` (default `10000`), el sample publica el mismo payload en `sample.topics.out.reintegros-alto-monto` usando la lib; el **PROCESSED** del original lo envia el basic al terminar el handler bien.
 - Si `monto <= sample.routing.amount-max-standard-to-pay`, el sample ejecuta `pagar(...)` y publica evento de pago en `sample.topics.out.pagos-reintegros`.
 - En el consumer de `alto-monto`, si `monto > sample.routing.amount-max-large-to-pay` (default `100000`), el mensaje se REJECT por validación de negocio (`monto no aceptable`).
-- El sample tambien consume por PULL `sample.topics.in.reintegros-alto-monto` en `com.smg.sampleconsumer.consumers.PullReintegrosHighValueConsumer`.
+- El sample tambien consume por PULL `sample.topics.in.reintegros-alto-monto` en `com.smg.sampleconsumer.consumers.PullReintegrosHighValueConsumer`: ejecuta `pagar(...)` y publica el evento de pago en `sample.topics.out.pagos-reintegros` (igual que el flujo estándar), para que el consumidor de notificaciones reciba altos montos ya pagados.
 - El sample tambien consume por PULL `sample.topics.in.pagos-reintegros` en `com.smg.sampleconsumer.consumers.PullPagosReintegrosNotificationConsumer`, registrando log de simulacion de envio de mail al cliente.
 
 Reglas del demo de negocio (resumen): payload inválido en mapping o validación de negocio (`validateMappedMessage`) → `REJECT`; `monto > 0` y handler OK → `PROCESSED` automático; si el publish u otra acción en el handler lanza excepción, ese mensaje queda pendiente.

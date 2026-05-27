@@ -15,11 +15,15 @@ public class ReintegroMessageMapper implements MegMessageMapper<ReintegroMessage
         String messageId = headerValue(message, "messageId");
         String correlationId = headerValue(message, "correlationId");
         if (correlationId == null || correlationId.isBlank()) correlationId = "corr-" + messageId;
-        String user = asText(message.get("user"));
-        if (user == null || user.isBlank()) user = "sample-consumer";
+        String user = headerValue(message, "user");
+        if (user == null || user.isBlank()) {
+            user = asText(message.get("user"));
+        }
         String cbu = asText(payload.get("cbu"));
-        double monto = asNumber(payload.get("monto")).doubleValue();
-        return new ReintegroMessage(messageId, correlationId, user, payload, cbu, monto);
+        String du = asText(payload.get("du"));
+        Number montoNumber = asNumber(payload.get("monto"));
+        double monto = montoNumber == null ? 0d : montoNumber.doubleValue();
+        return new ReintegroMessage(messageId, correlationId, user, payload, cbu, du, monto);
     }
 
     @SuppressWarnings("unchecked")
