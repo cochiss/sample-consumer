@@ -4,6 +4,8 @@
 
 PoC cliente contra la **API HTTP del Messaging Event Gateway**: crear topics/subs, publicar, recibir PUSH en un webhook y consumir por PULL con ACK/REJECT gobernados por `MegBasicPullConsumer` (validación → REJECT; handler OK → PROCESSED; excepción en handler → sin ACK, resto del batch sigue).
 
+**Flujo Git:** todo cambio en este repo va en rama (`feat/...`, `fix/...`) desde `main` actualizado; ver **[SPEC del workspace §6](../SPEC.md#6-flujo-git-obligatorio)**.
+
 ## Alcance
 
 | Módulo | Rol |
